@@ -16,32 +16,43 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
-app = FastAPI(
-    title="AI Trip Planner",
-    description="Trip planner using FastAPI, OpenAI, and a simple UI",
-    version="1.0.0",
-)
+app = FastAPI(title="AI Trip Planner")
 
 
 class TripRequest(BaseModel):
-    destination: str = Field(..., example="Tokyo")
+    origin: str = Field(
+        ...,
+        description="Starting location",
+        json_schema_extra={"example": "New York"}
+    )
+
+    destination: str = Field(
+        ...,
+        description="Trip destination",
+        json_schema_extra={"example": "Tokyo"}
+    )
+
     budget_usd: Optional[int] = Field(
         None,
-        example=1500,
         description="Optional budget. If empty, there is no limit.",
+        json_schema_extra={"example": 2000}
     )
+
     days: Optional[int] = Field(
         None,
-        example=5,
-        description="Optional trip length. If empty, the AI chooses a good duration.",
+        description="Optional trip length. If empty, AI chooses duration.",
+        json_schema_extra={"example": 5}
     )
+
     interests: List[str] = Field(
         default_factory=list,
-        example=["food", "culture", "nature"],
+        description="User interests",
+        json_schema_extra={"example": ["food", "culture", "shopping"]}
     )
 
 
 class TripResponse(BaseModel):
+    origin: str
     destination: str
     budget_usd: Optional[int]
     days: Optional[int]
@@ -80,10 +91,11 @@ def plan_trip(req: TripRequest):
         )
 
         prompt = f"""
-You are a helpful travel planner.
+You are a helpful AI travel planner.
 
-Create a clear and practical trip plan.
+Create a realistic trip plan.
 
+Starting location: {req.origin}
 Destination: {req.destination}
 Budget: {budget_text}
 Duration: {days_text}
@@ -91,13 +103,16 @@ Interests: {interests_text}
 
 Return the answer with:
 1. Short trip summary
-2. Suggested number of days
-3. Day-by-day itinerary
-4. Estimated cost breakdown
-5. Food and transport suggestions
-6. Important travel tips
+2. Best way to travel from starting location to destination
+3. Estimated transportation cost
+4. Suggested number of days
+5. Day-by-day itinerary
+6. Hotel / stay suggestions
+7. Food and transport suggestions
+8. Estimated total cost breakdown
+9. Important travel tips
 
-Make the plan realistic and easy to follow.
+Make the plan practical, clear, and easy to follow.
 """
 
         response = client.responses.create(
@@ -106,6 +121,7 @@ Make the plan realistic and easy to follow.
         )
 
         return TripResponse(
+            origin=req.origin,
             destination=req.destination,
             budget_usd=req.budget_usd,
             days=req.days,

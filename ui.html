@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 800px;
+      max-width: 850px;
       margin: 40px auto;
       padding: 20px;
       background: #f5f5f5;
@@ -53,6 +53,8 @@
     .hint {
       color: #666;
       font-size: 14px;
+      margin-top: -10px;
+      margin-bottom: 12px;
     }
   </style>
 </head>
@@ -60,6 +62,9 @@
 <body>
   <div class="card">
     <h1>AI Trip Planner</h1>
+
+    <label>Starting Location *</label>
+    <input id="origin" placeholder="Example: New York, Cairo, London">
 
     <label>Destination *</label>
     <input id="destination" placeholder="Example: Tokyo, Paris, Dubai">
@@ -86,17 +91,19 @@
     async function planTrip() {
       const resultBox = document.getElementById("result");
 
+      const origin = document.getElementById("origin").value.trim();
       const destination = document.getElementById("destination").value.trim();
       const budget = document.getElementById("budget").value;
       const days = document.getElementById("days").value;
       const interestsRaw = document.getElementById("interests").value.trim();
 
-      if (!destination) {
-        resultBox.textContent = "Please enter a destination.";
+      if (!origin || !destination) {
+        resultBox.textContent = "Please enter both starting location and destination.";
         return;
       }
 
       const body = {
+        origin: origin,
         destination: destination,
         interests: interestsRaw
           ? interestsRaw.split(",").map(item => item.trim()).filter(Boolean)

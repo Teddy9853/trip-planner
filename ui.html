@@ -6,10 +6,9 @@
 
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       max-width: 850px;
       margin: 40px auto;
-      padding: 20px;
       background: #f5f5f5;
     }
 
@@ -17,130 +16,98 @@
       background: white;
       padding: 25px;
       border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
 
     input, textarea, button {
       width: 100%;
-      padding: 12px;
-      margin-top: 8px;
-      margin-bottom: 16px;
-      font-size: 16px;
-      box-sizing: border-box;
+      padding: 10px;
+      margin: 8px 0;
     }
 
     button {
       background: #2563eb;
       color: white;
       border: none;
-      border-radius: 8px;
       cursor: pointer;
     }
 
-    button:hover {
-      background: #1d4ed8;
-    }
-
     pre {
-      background: #111827;
-      color: #f9fafb;
-      padding: 20px;
-      border-radius: 10px;
+      background: #111;
+      color: #eee;
+      padding: 15px;
       white-space: pre-wrap;
-      line-height: 1.5;
-    }
-
-    .hint {
-      color: #666;
-      font-size: 14px;
-      margin-top: -10px;
-      margin-bottom: 12px;
     }
   </style>
 </head>
 
 <body>
   <div class="card">
-    <h1>AI Trip Planner</h1>
+    <h1>Trip Planner</h1>
 
     <label>Starting Location *</label>
-    <input id="origin" placeholder="Example: New York, Cairo, London">
+    <input id="origin" placeholder="New York">
 
     <label>Destination *</label>
-    <input id="destination" placeholder="Example: Tokyo, Paris, Dubai">
+    <input id="destination" placeholder="Tokyo">
 
-    <label>Budget USD</label>
-    <input id="budget" type="number" placeholder="Leave empty for no limit">
-    <div class="hint">Optional</div>
+    <label>Number of Travelers *</label>
+    <input id="travelers" type="number" value="1" min="1">
 
-    <label>Number of Days</label>
-    <input id="days" type="number" placeholder="Leave empty for flexible duration">
-    <div class="hint">Optional</div>
+    <label>Budget (optional)</label>
+    <input id="budget" type="number">
 
-    <label>Interests</label>
-    <textarea id="interests" placeholder="Example: food, history, beaches, shopping"></textarea>
-    <div class="hint">Separate interests with commas</div>
+    <label>Days (optional)</label>
+    <input id="days" type="number">
 
-    <button onclick="planTrip()">Generate Trip Plan</button>
+    <label>Interests (optional)</label>
+    <textarea id="interests" placeholder="food, culture"></textarea>
+
+    <button onclick="planTrip()">Plan Trip</button>
 
     <h2>Result</h2>
-    <pre id="result">Your trip plan will appear here.</pre>
+    <pre id="result"></pre>
   </div>
 
   <script>
     async function planTrip() {
-      const resultBox = document.getElementById("result");
-
       const origin = document.getElementById("origin").value.trim();
       const destination = document.getElementById("destination").value.trim();
+      const travelers = document.getElementById("travelers").value;
+
       const budget = document.getElementById("budget").value;
       const days = document.getElementById("days").value;
-      const interestsRaw = document.getElementById("interests").value.trim();
+      const interestsRaw = document.getElementById("interests").value;
 
-      if (!origin || !destination) {
-        resultBox.textContent = "Please enter both starting location and destination.";
+      if (!origin || !destination || !travelers) {
+        document.getElementById("result").textContent =
+          "Please fill required fields.";
         return;
       }
 
       const body = {
         origin: origin,
         destination: destination,
+        travelers: Number(travelers),
         interests: interestsRaw
-          ? interestsRaw.split(",").map(item => item.trim()).filter(Boolean)
+          ? interestsRaw.split(",").map(x => x.trim()).filter(Boolean)
           : []
       };
 
-      if (budget) {
-        body.budget_usd = Number(budget);
-      }
+      if (budget) body.budget_usd = Number(budget);
+      if (days) body.days = Number(days);
 
-      if (days) {
-        body.days = Number(days);
-      }
+      document.getElementById("result").textContent = "Loading...";
 
-      resultBox.textContent = "Generating trip plan...";
+      const res = await fetch("/plan-trip", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      });
 
-      try {
-        const response = await fetch("/plan-trip", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(body)
-        });
+      const data = await res.json();
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          resultBox.textContent = "Error: " + JSON.stringify(data, null, 2);
-          return;
-        }
-
-        resultBox.textContent = data.plan;
-
-      } catch (error) {
-        resultBox.textContent = "Request failed: " + error;
-      }
+      document.getElementById("result").textContent =
+        data.plan || JSON.stringify(data, null, 2);
     }
   </script>
 </body>

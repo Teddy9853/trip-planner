@@ -5,9 +5,11 @@ url = "http://127.0.0.1:8000/plan-trip"
 data = {
     "origin": "New York",
     "destination": "Japan",
+    "travelers": 2,
+    # Optional:
     "budget_usd": 2000,
     "days": 5,
-    "interests": ["food", "anime", "culture"]
+    "interests": ["food", "anime"]
 }
 
 response = requests.post(url, json=data)
@@ -15,8 +17,9 @@ response = requests.post(url, json=data)
 if response.status_code == 200:
     result = response.json()
 
-    print("\nSTARTING LOCATION:", result["origin"])
-    print("DESTINATION:", result["destination"])
+    print("\nFROM:", result["origin"])
+    print("TO:", result["destination"])
+    print("TRAVELERS:", result["travelers"])
     print("\nPLAN:\n")
     print(result["plan"])
 else:

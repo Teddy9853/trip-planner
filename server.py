@@ -9,56 +9,57 @@ from openai import OpenAI
 
 load_dotenv()
 
-api_key = os.getenv("OPENAI_API_KEY")
-
-if not api_key:
-    raise RuntimeError("OPENAI_API_KEY is missing. Add it to your .env file.")
-
-client = OpenAI(api_key=api_key)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI(title="AI Trip Planner")
 
 
+# =========================
+# Request Model
+# =========================
 class TripRequest(BaseModel):
-    origin: str = Field(
+    origin: str = Field(..., json_schema_extra={"example": "New York"})
+    destination: str = Field(..., json_schema_extra={"example": "Tokyo"})
+    travelers: int = Field(
         ...,
-        description="Starting location",
-        json_schema_extra={"example": "New York"}
+        description="Number of travelers",
+        json_schema_extra={"example": 2}
     )
 
-    destination: str = Field(
-        ...,
-        description="Trip destination",
-        json_schema_extra={"example": "Tokyo"}
-    )
-
+    # Optional fields
     budget_usd: Optional[int] = Field(
         None,
-        description="Optional budget. If empty, there is no limit.",
+        description="Optional budget",
         json_schema_extra={"example": 2000}
     )
 
     days: Optional[int] = Field(
         None,
-        description="Optional trip length. If empty, AI chooses duration.",
+        description="Optional trip duration",
         json_schema_extra={"example": 5}
     )
 
     interests: List[str] = Field(
         default_factory=list,
-        description="User interests",
-        json_schema_extra={"example": ["food", "culture", "shopping"]}
+        json_schema_extra={"example": ["food", "culture"]}
     )
 
 
+# =========================
+# Response Model
+# =========================
 class TripResponse(BaseModel):
     origin: str
     destination: str
+    travelers: int
     budget_usd: Optional[int]
     days: Optional[int]
     plan: str
 
 
+# =========================
+# UI Route
+# =========================
 @app.get("/", include_in_schema=False)
 def home():
     return FileResponse("ui.html")
@@ -69,50 +70,57 @@ def health():
     return {"status": "ok"}
 
 
+# =========================
+# Main AI Endpoint
+# =========================
 @app.post("/plan-trip", response_model=TripResponse, operation_id="plan_trip")
 def plan_trip(req: TripRequest):
     try:
         budget_text = (
-            f"The maximum budget is ${req.budget_usd} USD."
+            f"Budget is ${req.budget_usd} USD."
             if req.budget_usd is not None
-            else "There is no budget limit."
+            else "No strict budget limit."
         )
 
         days_text = (
-            f"The trip should be {req.days} days."
+            f"Trip duration is {req.days} days."
             if req.days is not None
-            else "The trip duration is flexible. Choose a practical duration."
+            else "Trip duration is flexible."
         )
 
         interests_text = (
             ", ".join(req.interests)
             if req.interests
-            else "general sightseeing, food, culture, and relaxation"
+            else "general travel, food, culture, sightseeing"
         )
 
         prompt = f"""
-You are a helpful AI travel planner.
+You are an expert travel planner.
 
-Create a realistic trip plan.
+Create a realistic and useful trip plan.
 
 Starting location: {req.origin}
 Destination: {req.destination}
-Budget: {budget_text}
-Duration: {days_text}
+Number of travelers: {req.travelers}
+{budget_text}
+{days_text}
 Interests: {interests_text}
 
-Return the answer with:
-1. Short trip summary
-2. Best way to travel from starting location to destination
-3. Estimated transportation cost
-4. Suggested number of days
-5. Day-by-day itinerary
-6. Hotel / stay suggestions
-7. Food and transport suggestions
-8. Estimated total cost breakdown
-9. Important travel tips
+Requirements:
+- Adjust costs based on number of travelers
+- Include transportation from origin to destination
+- Suggest suitable hotels based on group size
+- Provide cost per person and total
 
-Make the plan practical, clear, and easy to follow.
+Return:
+1. Trip summary
+2. Transportation plan
+3. Estimated cost (per person + total)
+4. Suggested duration
+5. Day-by-day itinerary
+6. Hotel suggestions
+7. Food and transport tips
+8. Important travel advice
 """
 
         response = client.responses.create(
@@ -123,6 +131,7 @@ Make the plan practical, clear, and easy to follow.
         return TripResponse(
             origin=req.origin,
             destination=req.destination,
+            travelers=req.travelers,
             budget_usd=req.budget_usd,
             days=req.days,
             plan=response.output_text,

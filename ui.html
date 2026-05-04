@@ -6,9 +6,10 @@
 
   <style>
     body {
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       max-width: 850px;
       margin: 40px auto;
+      padding: 20px;
       background: #f5f5f5;
     }
 
@@ -16,71 +17,91 @@
       background: white;
       padding: 25px;
       border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
 
     input, textarea, button {
       width: 100%;
-      padding: 10px;
-      margin: 8px 0;
+      padding: 12px;
+      margin-top: 8px;
+      margin-bottom: 16px;
+      font-size: 16px;
+      box-sizing: border-box;
     }
 
     button {
       background: #2563eb;
       color: white;
       border: none;
+      border-radius: 8px;
       cursor: pointer;
     }
 
+    button:hover {
+      background: #1d4ed8;
+    }
+
     pre {
-      background: #111;
-      color: #eee;
-      padding: 15px;
+      background: #111827;
+      color: #f9fafb;
+      padding: 20px;
+      border-radius: 10px;
       white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
+    .hint {
+      color: #666;
+      font-size: 14px;
+      margin-top: -10px;
+      margin-bottom: 12px;
     }
   </style>
 </head>
 
 <body>
   <div class="card">
-    <h1>Trip Planner</h1>
+    <h1>AI Trip Planner</h1>
 
     <label>Starting Location *</label>
-    <input id="origin" placeholder="New York">
+    <input id="origin" placeholder="Example: New York">
 
     <label>Destination *</label>
-    <input id="destination" placeholder="Tokyo">
+    <input id="destination" placeholder="Example: Tokyo">
 
     <label>Number of Travelers *</label>
     <input id="travelers" type="number" value="1" min="1">
 
-    <label>Budget (optional)</label>
-    <input id="budget" type="number">
+    <label>Budget USD</label>
+    <input id="budget" type="number" placeholder="Optional">
 
-    <label>Days (optional)</label>
-    <input id="days" type="number">
+    <label>Number of Days</label>
+    <input id="days" type="number" placeholder="Optional">
 
-    <label>Interests (optional)</label>
-    <textarea id="interests" placeholder="food, culture"></textarea>
+    <label>Interests</label>
+    <textarea id="interests" placeholder="Example: food, culture, shopping"></textarea>
+    <div class="hint">Separate interests with commas</div>
 
-    <button onclick="planTrip()">Plan Trip</button>
+    <button onclick="planTrip()">Generate Trip Plan</button>
 
     <h2>Result</h2>
-    <pre id="result"></pre>
+    <pre id="result">Your trip plan will appear here.</pre>
   </div>
 
   <script>
     async function planTrip() {
+      const resultBox = document.getElementById("result");
+
       const origin = document.getElementById("origin").value.trim();
       const destination = document.getElementById("destination").value.trim();
       const travelers = document.getElementById("travelers").value;
 
       const budget = document.getElementById("budget").value;
       const days = document.getElementById("days").value;
-      const interestsRaw = document.getElementById("interests").value;
+      const interestsRaw = document.getElementById("interests").value.trim();
 
-      if (!origin || !destination || !travelers) {
-        document.getElementById("result").textContent =
-          "Please fill required fields.";
+      if (!origin || !destination || !travelers || Number(travelers) < 1) {
+        resultBox.textContent = "Please enter origin, destination, and number of travelers.";
         return;
       }
 
@@ -89,25 +110,41 @@
         destination: destination,
         travelers: Number(travelers),
         interests: interestsRaw
-          ? interestsRaw.split(",").map(x => x.trim()).filter(Boolean)
+          ? interestsRaw.split(",").map(item => item.trim()).filter(Boolean)
           : []
       };
 
-      if (budget) body.budget_usd = Number(budget);
-      if (days) body.days = Number(days);
+      if (budget) {
+        body.budget_usd = Number(budget);
+      }
 
-      document.getElementById("result").textContent = "Loading...";
+      if (days) {
+        body.days = Number(days);
+      }
 
-      const res = await fetch("/plan-trip", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(body)
-      });
+      resultBox.textContent = "Generating trip plan...";
 
-      const data = await res.json();
+      try {
+        const response = await fetch("/plan-trip", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
 
-      document.getElementById("result").textContent =
-        data.plan || JSON.stringify(data, null, 2);
+        const data = await response.json();
+
+        if (!response.ok) {
+          resultBox.textContent = "Error: " + JSON.stringify(data, null, 2);
+          return;
+        }
+
+        resultBox.textContent = data.plan;
+
+      } catch (error) {
+        resultBox.textContent = "Request failed: " + error;
+      }
     }
   </script>
 </body>

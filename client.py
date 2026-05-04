@@ -6,10 +6,11 @@ data = {
     "origin": "New York",
     "destination": "Japan",
     "travelers": 2,
-    # Optional:
-    "budget_usd": 2000,
+
+    # Optional fields
+    "budget_usd": 3000,
     "days": 5,
-    "interests": ["food", "anime"]
+    "interests": ["food", "anime", "culture"]
 }
 
 response = requests.post(url, json=data)

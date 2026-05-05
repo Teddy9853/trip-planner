@@ -76,7 +76,7 @@ def plan_trip(req: TripRequest):
         prompt = f"""
 You are an expert travel planner.
 
-Create a realistic trip plan.
+Create a realistic and detailed trip plan.
 
 Starting location: {req.origin}
 Destination: {req.destination}
@@ -85,32 +85,75 @@ Number of travelers: {req.travelers}
 {days_text}
 Interests: {interests_text}
 
-Important:
-- Hotel cost MUST be included.
-- Include cost per person and total cost.
-- Adjust cost for number of travelers.
-- Include transportation from origin to destination.
-- Include all important trip stops with latitude and longitude.
-- Include origin and destination in map stops.
+Return JSON only.
 
-The plan text must include:
-1. Trip summary
-2. Transportation plan
-3. Estimated cost breakdown:
-   - Transportation
-   - Hotel / accommodation
-   - Food
-   - Local transport
-   - Activities
-   - Emergency / extra money
-   - Total estimated cost
-   - Estimated cost per person
-4. Suggested duration
-5. Day-by-day itinerary
-6. Hotel recommendations
-7. Food suggestions
-8. Local transport suggestions
-9. Important travel tips
+The JSON must contain:
+1. "plan": a detailed human-readable travel plan
+2. "stops": map stop points with latitude and longitude
+
+The "plan" text must be detailed and include:
+
+1. Trip Summary
+- Explain the overall travel idea
+- Mention starting point, destination, travelers, duration, and style
+
+2. Transportation From Origin To Destination
+- Best travel method
+- Estimated travel time
+- Estimated transport cost
+- Cost per person and total
+
+3. Estimated Cost Breakdown
+- Transportation
+- Hotel / accommodation
+- Hotel cost per night
+- Number of nights
+- Room count assumption
+- Food
+- Local transport
+- Activities
+- Emergency / extra money
+- Total estimated cost
+- Estimated cost per person
+
+4. Day-by-Day Itinerary
+For each day include:
+- Morning plan
+- Afternoon plan
+- Evening plan
+- Main stops
+- Estimated daily cost
+
+5. Hotel Recommendations
+- Suggested hotel area
+- Type of hotel
+- Why it fits the travelers
+- Estimated hotel cost
+
+6. Food Suggestions
+- Local foods to try
+- Estimated food cost per day
+
+7. Local Transport Suggestions
+- Subway, taxi, walking, train, bus, etc.
+- Estimated local transport cost
+
+8. Important Travel Tips
+- Safety
+- Weather
+- Money
+- Booking advice
+- Cultural tips
+
+9. Final Recommendation
+- Short conclusion about the best way to enjoy the trip
+
+Map stop rules:
+- Include origin and destination.
+- Include major stops from each itinerary day.
+- Each stop must have:
+  name, day, description, lat, lng.
+- Each stop day must match the itinerary day.
 """
 
         response = client.responses.create(
@@ -123,9 +166,7 @@ The plan text must include:
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "plan": {
-                                "type": "string"
-                            },
+                            "plan": {"type": "string"},
                             "stops": {
                                 "type": "array",
                                 "items": {
@@ -164,13 +205,7 @@ The plan text must include:
                 detail="OpenAI returned an empty response."
             )
 
-        try:
-            data = json.loads(raw_text)
-        except json.JSONDecodeError:
-            raise HTTPException(
-                status_code=500,
-                detail=f"OpenAI did not return valid JSON: {raw_text}"
-            )
+        data = json.loads(raw_text)
 
         return TripResponse(
             origin=req.origin,
@@ -181,9 +216,6 @@ The plan text must include:
             plan=data["plan"],
             stops=data["stops"],
         )
-
-    except HTTPException:
-        raise
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

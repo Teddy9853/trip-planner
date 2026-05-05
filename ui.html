@@ -4,10 +4,7 @@
   <meta charset="UTF-8">
   <title>AI Trip Planner</title>
 
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet/dist/leaflet.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 
   <style>
     body {
@@ -42,6 +39,37 @@
       cursor: pointer;
     }
 
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    #map {
+      height: 450px;
+      border-radius: 12px;
+      margin-top: 15px;
+      margin-bottom: 15px;
+    }
+
+    #legend {
+      background: #f9fafb;
+      border: 1px solid #ddd;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .legend-item {
+      font-size: 14px;
+    }
+
+    .legend-dot {
+      font-size: 18px;
+      margin-right: 5px;
+    }
+
     pre {
       background: #111827;
       color: #f9fafb;
@@ -51,10 +79,11 @@
       line-height: 1.5;
     }
 
-    #map {
-      height: 450px;
-      border-radius: 12px;
-      margin-top: 20px;
+    .hint {
+      color: #666;
+      font-size: 14px;
+      margin-top: -10px;
+      margin-bottom: 12px;
     }
   </style>
 </head>
@@ -80,11 +109,15 @@
 
     <label>Interests</label>
     <textarea id="interests" placeholder="Example: food, culture, shopping"></textarea>
+    <div class="hint">Separate interests with commas</div>
 
     <button onclick="planTrip()">Generate Trip Plan</button>
 
     <h2>Map</h2>
     <div id="map"></div>
+
+    <h3>Day Colors</h3>
+    <div id="legend">Generate a trip to see day colors.</div>
 
     <h2>Result</h2>
     <pre id="result">Your trip plan will appear here.</pre>
@@ -100,10 +133,62 @@
       attribution: "© OpenStreetMap contributors"
     }).addTo(map);
 
+    function getColor(day) {
+      const colors = [
+        "red",
+        "blue",
+        "green",
+        "orange",
+        "purple",
+        "yellow",
+        "violet",
+        "grey",
+        "black"
+      ];
+
+      return colors[(day - 1) % colors.length];
+    }
+
+    function createColoredIcon(color) {
+      return new L.Icon({
+        iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
+    }
+
+    function renderLegend(stops) {
+      const legend = document.getElementById("legend");
+
+      if (!stops || stops.length === 0) {
+        legend.textContent = "No stops available.";
+        return;
+      }
+
+      const uniqueDays = [...new Set(stops.map(stop => stop.day || 1))].sort((a, b) => a - b);
+
+      legend.innerHTML = "";
+
+      uniqueDays.forEach(day => {
+        const color = getColor(day);
+
+        legend.innerHTML += `
+          <div class="legend-item">
+            <span class="legend-dot" style="color:${color}">●</span>
+            Day ${day}
+          </div>
+        `;
+      });
+    }
+
     function showStopsOnMap(stops) {
       markersLayer.clearLayers();
 
       if (!stops || stops.length === 0) {
+        renderLegend([]);
         return;
       }
 
@@ -111,17 +196,23 @@
 
       stops.forEach((stop, index) => {
         if (stop.lat && stop.lng) {
-          const marker = L.marker([stop.lat, stop.lng])
+          const day = stop.day || 1;
+          const color = getColor(day);
+          const icon = createColoredIcon(color);
+
+          L.marker([stop.lat, stop.lng], { icon: icon })
             .addTo(markersLayer)
             .bindPopup(
               `<b>${index + 1}. ${stop.name}</b><br>
-               Day: ${stop.day}<br>
+               <b>Day:</b> ${day}<br>
                ${stop.description}`
             );
 
           bounds.push([stop.lat, stop.lng]);
         }
       });
+
+      renderLegend(stops);
 
       if (bounds.length > 0) {
         map.fitBounds(bounds, { padding: [40, 40] });
@@ -139,7 +230,8 @@
       const interestsRaw = document.getElementById("interests").value.trim();
 
       if (!origin || !destination || !travelers || Number(travelers) < 1) {
-        resultBox.textContent = "Please enter origin, destination, and travelers.";
+        resultBox.textContent =
+          "Please enter origin, destination, and number of travelers.";
         return;
       }
 
@@ -152,8 +244,13 @@
           : []
       };
 
-      if (budget) body.budget_usd = Number(budget);
-      if (days) body.days = Number(days);
+      if (budget) {
+        body.budget_usd = Number(budget);
+      }
+
+      if (days) {
+        body.days = Number(days);
+      }
 
       resultBox.textContent = "Generating trip plan...";
 

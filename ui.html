@@ -39,10 +39,6 @@
       cursor: pointer;
     }
 
-    button:hover {
-      background: #1d4ed8;
-    }
-
     #map {
       height: 450px;
       border-radius: 12px;
@@ -61,10 +57,6 @@
       gap: 12px;
     }
 
-    .legend-item {
-      font-size: 14px;
-    }
-
     .legend-dot {
       font-size: 18px;
       margin-right: 5px;
@@ -77,13 +69,6 @@
       border-radius: 10px;
       white-space: pre-wrap;
       line-height: 1.5;
-    }
-
-    .hint {
-      color: #666;
-      font-size: 14px;
-      margin-top: -10px;
-      margin-bottom: 12px;
     }
   </style>
 </head>
@@ -109,7 +94,6 @@
 
     <label>Interests</label>
     <textarea id="interests" placeholder="Example: food, culture, shopping"></textarea>
-    <div class="hint">Separate interests with commas</div>
 
     <button onclick="planTrip()">Generate Trip Plan</button>
 
@@ -119,7 +103,7 @@
     <h3>Day Colors</h3>
     <div id="legend">Generate a trip to see day colors.</div>
 
-    <h2>Result</h2>
+    <h2>Detailed Plan</h2>
     <pre id="result">Your trip plan will appear here.</pre>
   </div>
 
@@ -128,6 +112,7 @@
   <script>
     let map = L.map("map").setView([20, 0], 2);
     let markersLayer = L.layerGroup().addTo(map);
+    let routeLayer = L.layerGroup().addTo(map);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors"
@@ -135,15 +120,8 @@
 
     function getColor(day) {
       const colors = [
-        "red",
-        "blue",
-        "green",
-        "orange",
-        "purple",
-        "yellow",
-        "violet",
-        "grey",
-        "black"
+        "red", "blue", "green", "orange", "purple",
+        "yellow", "violet", "grey", "black"
       ];
 
       return colors[(day - 1) % colors.length];
@@ -168,7 +146,8 @@
         return;
       }
 
-      const uniqueDays = [...new Set(stops.map(stop => stop.day || 1))].sort((a, b) => a - b);
+      const uniqueDays = [...new Set(stops.map(stop => stop.day || 1))]
+        .sort((a, b) => a - b);
 
       legend.innerHTML = "";
 
@@ -176,7 +155,7 @@
         const color = getColor(day);
 
         legend.innerHTML += `
-          <div class="legend-item">
+          <div>
             <span class="legend-dot" style="color:${color}">●</span>
             Day ${day}
           </div>
@@ -186,6 +165,7 @@
 
     function showStopsOnMap(stops) {
       markersLayer.clearLayers();
+      routeLayer.clearLayers();
 
       if (!stops || stops.length === 0) {
         renderLegend([]);
@@ -194,21 +174,53 @@
 
       const bounds = [];
 
-      stops.forEach((stop, index) => {
-        if (stop.lat && stop.lng) {
-          const day = stop.day || 1;
-          const color = getColor(day);
-          const icon = createColoredIcon(color);
+      const sortedStops = [...stops].sort((a, b) => {
+        if ((a.day || 1) !== (b.day || 1)) {
+          return (a.day || 1) - (b.day || 1);
+        }
+        return 0;
+      });
 
-          L.marker([stop.lat, stop.lng], { icon: icon })
-            .addTo(markersLayer)
-            .bindPopup(
-              `<b>${index + 1}. ${stop.name}</b><br>
-               <b>Day:</b> ${day}<br>
-               ${stop.description}`
-            );
+      const stopsByDay = {};
 
-          bounds.push([stop.lat, stop.lng]);
+      sortedStops.forEach(stop => {
+        const day = stop.day || 1;
+
+        if (!stopsByDay[day]) {
+          stopsByDay[day] = [];
+        }
+
+        stopsByDay[day].push(stop);
+      });
+
+      Object.keys(stopsByDay).forEach(day => {
+        const dayStops = stopsByDay[day];
+        const color = getColor(Number(day));
+        const latlngs = [];
+
+        dayStops.forEach((stop, index) => {
+          if (stop.lat && stop.lng) {
+            const icon = createColoredIcon(color);
+
+            L.marker([stop.lat, stop.lng], { icon: icon })
+              .addTo(markersLayer)
+              .bindPopup(
+                `<b>${stop.name}</b><br>
+                 <b>Day:</b> ${day}<br>
+                 ${stop.description}`
+              );
+
+            latlngs.push([stop.lat, stop.lng]);
+            bounds.push([stop.lat, stop.lng]);
+          }
+        });
+
+        if (latlngs.length > 1) {
+          L.polyline(latlngs, {
+            color: color,
+            weight: 4,
+            opacity: 0.8
+          }).addTo(routeLayer);
         }
       });
 
@@ -252,7 +264,7 @@
         body.days = Number(days);
       }
 
-      resultBox.textContent = "Generating trip plan...";
+      resultBox.textContent = "Generating detailed trip plan...";
 
       try {
         const response = await fetch("/plan-trip", {

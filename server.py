@@ -91,18 +91,10 @@ The JSON must contain:
 1. "plan": a detailed human-readable travel plan
 2. "stops": map stop points with latitude and longitude
 
-The "plan" text must be detailed and include:
+The "plan" text must include:
 
 1. Trip Summary
-- Explain the overall travel idea
-- Mention starting point, destination, travelers, duration, and style
-
 2. Transportation From Origin To Destination
-- Best travel method
-- Estimated travel time
-- Estimated transport cost
-- Cost per person and total
-
 3. Estimated Cost Breakdown
 - Transportation
 - Hotel / accommodation
@@ -125,35 +117,17 @@ For each day include:
 - Estimated daily cost
 
 5. Hotel Recommendations
-- Suggested hotel area
-- Type of hotel
-- Why it fits the travelers
-- Estimated hotel cost
-
 6. Food Suggestions
-- Local foods to try
-- Estimated food cost per day
-
 7. Local Transport Suggestions
-- Subway, taxi, walking, train, bus, etc.
-- Estimated local transport cost
-
 8. Important Travel Tips
-- Safety
-- Weather
-- Money
-- Booking advice
-- Cultural tips
-
 9. Final Recommendation
-- Short conclusion about the best way to enjoy the trip
 
 Map stop rules:
 - Include origin and destination.
 - Include major stops from each itinerary day.
-- Each stop must have:
-  name, day, description, lat, lng.
+- Each stop must have: name, day, description, lat, lng.
 - Each stop day must match the itinerary day.
+- Put stops in the correct travel order so the map route line is useful.
 """
 
         response = client.responses.create(
@@ -178,13 +152,7 @@ Map stop rules:
                                         "lat": {"type": "number"},
                                         "lng": {"type": "number"}
                                     },
-                                    "required": [
-                                        "name",
-                                        "day",
-                                        "description",
-                                        "lat",
-                                        "lng"
-                                    ],
+                                    "required": ["name", "day", "description", "lat", "lng"],
                                     "additionalProperties": False
                                 }
                             }
@@ -197,15 +165,7 @@ Map stop rules:
             }
         )
 
-        raw_text = response.output_text
-
-        if not raw_text:
-            raise HTTPException(
-                status_code=500,
-                detail="OpenAI returned an empty response."
-            )
-
-        data = json.loads(raw_text)
+        data = json.loads(response.output_text)
 
         return TripResponse(
             origin=req.origin,

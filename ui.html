@@ -43,11 +43,251 @@
       background: #1d4ed8;
     }
 
-    #map {
-      height: 450px;
-      border-radius: 12px;
+    /* Progress bar styles */
+    #progress-bar {
+      display: none;
+      background: #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      text-align: center;
+      color: #374151;
+      font-weight: 500;
+    }
+
+    #progress-bar.active {
+      display: block;
+    }
+
+    /* Map container with relative positioning for overlays */
+    #map-container {
+      position: relative;
+      height: 600px;
       margin-top: 15px;
       margin-bottom: 15px;
+    }
+
+    #map {
+      height: 100%;
+      border-radius: 12px;
+    }
+
+    /* Attraction Card Panel */
+    #attraction-panel {
+      display: none;
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      width: 320px;
+      max-height: calc(100% - 20px);
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    #attraction-panel.active {
+      display: block;
+    }
+
+    .attraction-card-header {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      background: #e5e7eb;
+      border-radius: 12px 12px 0 0;
+      overflow: hidden;
+    }
+
+    .attraction-card-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image-carousel-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .image-carousel-arrow:hover {
+      background: rgba(0,0,0,0.7);
+    }
+
+    .image-carousel-arrow.left {
+      left: 10px;
+    }
+
+    .image-carousel-arrow.right {
+      right: 10px;
+    }
+
+    .image-carousel-arrow:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .attraction-card-content {
+      padding: 20px;
+    }
+
+    .attraction-card-content h3 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      color: #111827;
+    }
+
+    .attraction-datetime {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .attraction-rating {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .stars {
+      color: #fbbf24;
+      font-size: 16px;
+    }
+
+    .rating-text {
+      color: #374151;
+      font-size: 14px;
+    }
+
+    .attraction-category {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .attraction-notes {
+      color: #4b5563;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .attraction-website {
+      display: inline-block;
+      color: #2563eb;
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .attraction-website:hover {
+      text-decoration: underline;
+    }
+
+    /* Navigation controls */
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 16px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .nav-arrow {
+      background: #2563eb;
+      color: white;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-arrow:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
+    .nav-arrow:disabled {
+      background: #d1d5db;
+      cursor: not-allowed;
+    }
+
+    .nav-position {
+      color: #6b7280;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* Leaflet custom controls */
+    .leaflet-control-day-filter {
+      background: white;
+      padding: 8px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .day-filter-btn {
+      background: white;
+      border: 1px solid #d1d5db;
+      padding: 6px 12px;
+      margin: 2px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #374151;
+      transition: all 0.2s;
+    }
+
+    .day-filter-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .day-filter-btn.active {
+      background: #2563eb;
+      color: white;
+      border-color: #2563eb;
+    }
+
+    .leaflet-control-next-day {
+      background: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #2563eb;
+      border: 1px solid #2563eb;
+      transition: all 0.2s;
+    }
+
+    .leaflet-control-next-day:hover {
+      background: #2563eb;
+      color: white;
     }
 
     #legend {
@@ -101,8 +341,44 @@
 
     <button onclick="planTrip()">Generate Trip Plan</button>
 
+    <!-- SSE Progress Bar -->
+    <div id="progress-bar">Generating your trip plan...</div>
+
     <h2>Map</h2>
-    <div id="map"></div>
+    <!-- Map container with relative positioning for overlays -->
+    <div id="map-container">
+      <div id="map"></div>
+
+      <!-- Attraction Card Panel (right side overlay) -->
+      <div id="attraction-panel">
+        <!-- Image carousel -->
+        <div class="attraction-card-header">
+          <img id="attraction-image" class="attraction-card-image" src="" alt="Attraction">
+          <button class="image-carousel-arrow left" id="img-prev" onclick="prevImage()">&#8249;</button>
+          <button class="image-carousel-arrow right" id="img-next" onclick="nextImage()">&#8250;</button>
+        </div>
+
+        <!-- Card content -->
+        <div class="attraction-card-content">
+          <h3 id="card-name"></h3>
+          <div class="attraction-datetime" id="card-datetime"></div>
+          <div class="attraction-rating">
+            <span class="stars" id="card-stars"></span>
+            <span class="rating-text" id="card-rating-text"></span>
+          </div>
+          <span class="attraction-category" id="card-category"></span>
+          <p class="attraction-notes" id="card-notes"></p>
+          <a class="attraction-website" id="card-website" href="#" target="_blank" rel="noopener noreferrer">Official Website</a>
+        </div>
+
+        <!-- Stop navigation arrows -->
+        <div class="nav-controls">
+          <button class="nav-arrow" id="stop-prev" onclick="prevStop()">&#9664;</button>
+          <span class="nav-position" id="stop-position">1 of 1</span>
+          <button class="nav-arrow" id="stop-next" onclick="nextStop()">&#9654;</button>
+        </div>
+      </div>
+    </div>
 
     <h3>Day Colors</h3>
     <div id="legend">Generate a trip to see day colors.</div>
@@ -115,20 +391,35 @@
   <script src="https://unpkg.com/leaflet-polylinedecorator/dist/leaflet.polylineDecorator.js"></script>
 
   <script>
+    // ─── Global State ────────────────────────────────────────────────────────────
+    const state = {
+      stops: [],           // All Stop objects from the API
+      stopsByDay: {},      // Stops grouped by day: { 1: [...], 2: [...] }
+      currentDay: 1,       // Currently selected day (0 = "All")
+      currentStopIdx: 0,   // Index of the currently shown stop within currentDay
+      currentImageIdx: 0,  // Index of the currently shown image in the carousel
+      totalDays: 0,        // Total number of days in the trip
+    };
+
+    // ─── Map Initialisation ──────────────────────────────────────────────────────
     let map = L.map("map").setView([20, 0], 2);
     let markersLayer = L.layerGroup().addTo(map);
     let routeLayer = L.layerGroup().addTo(map);
+
+    // Leaflet custom controls (created once, updated on data change)
+    let dayFilterControl = null;
+    let nextDayControl = null;
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors"
     }).addTo(map);
 
+    // ─── Colour Helpers ──────────────────────────────────────────────────────────
     function getColor(day) {
       const colors = [
         "red", "blue", "green", "orange", "purple",
         "yellow", "violet", "grey", "black"
       ];
-
       return colors[(day - 1) % colors.length];
     }
 
@@ -143,120 +434,343 @@
       });
     }
 
+    // ─── Legend ──────────────────────────────────────────────────────────────────
     function renderLegend(stops) {
       const legend = document.getElementById("legend");
-
       if (!stops || stops.length === 0) {
         legend.textContent = "No stops available.";
         return;
       }
-
-      const uniqueDays = [...new Set(stops.map(stop => stop.day || 1))]
-        .sort((a, b) => a - b);
-
+      const uniqueDays = [...new Set(stops.map(s => s.day || 1))].sort((a, b) => a - b);
       legend.innerHTML = "";
-
       uniqueDays.forEach(day => {
         const color = getColor(day);
-
-        legend.innerHTML += `
-          <div>
-            <span class="legend-dot" style="color:${color}">●</span>
-            Day ${day}
-          </div>
-        `;
+        legend.innerHTML += `<div><span class="legend-dot" style="color:${color}">●</span>Day ${day}</div>`;
       });
     }
 
-    function showStopsOnMap(stops) {
+    // ─── Day Filter Control (Task 9.2) ───────────────────────────────────────────
+    function buildDayFilterControl() {
+      if (dayFilterControl) {
+        map.removeControl(dayFilterControl);
+        dayFilterControl = null;
+      }
+
+      const DayFilterControl = L.Control.extend({
+        options: { position: "topleft" },
+        onAdd: function () {
+          const container = L.DomUtil.create("div", "leaflet-control-day-filter");
+          L.DomEvent.disableClickPropagation(container);
+
+          // "All" button
+          const allBtn = document.createElement("button");
+          allBtn.className = "day-filter-btn" + (state.currentDay === 0 ? " active" : "");
+          allBtn.textContent = "All";
+          allBtn.onclick = () => selectDay(0);
+          container.appendChild(allBtn);
+
+          // One button per day that has stops
+          const days = Object.keys(state.stopsByDay)
+            .map(Number)
+            .sort((a, b) => a - b);
+
+          days.forEach(day => {
+            if (state.stopsByDay[day] && state.stopsByDay[day].length > 0) {
+              const btn = document.createElement("button");
+              btn.className = "day-filter-btn" + (state.currentDay === day ? " active" : "");
+              btn.textContent = `Day ${day}`;
+              btn.dataset.day = day;
+              btn.onclick = () => selectDay(day);
+              container.appendChild(btn);
+            }
+          });
+
+          return container;
+        }
+      });
+
+      dayFilterControl = new DayFilterControl();
+      dayFilterControl.addTo(map);
+    }
+
+    // ─── Next Day Control (Task 9.5) ─────────────────────────────────────────────
+    function buildNextDayControl() {
+      if (nextDayControl) {
+        map.removeControl(nextDayControl);
+        nextDayControl = null;
+      }
+
+      // Hide when on the last day or showing "All"
+      if (state.currentDay === 0 || state.currentDay >= state.totalDays) return;
+
+      const NextDayControl = L.Control.extend({
+        options: { position: "bottomright" },
+        onAdd: function () {
+          const btn = L.DomUtil.create("button", "leaflet-control-next-day");
+          L.DomEvent.disableClickPropagation(btn);
+          btn.textContent = `Day ${state.currentDay + 1} →`;
+          btn.onclick = () => selectDay(state.currentDay + 1);
+          return btn;
+        }
+      });
+
+      nextDayControl = new NextDayControl();
+      nextDayControl.addTo(map);
+    }
+
+    // ─── Day Selection ───────────────────────────────────────────────────────────
+    function selectDay(day) {
+      state.currentDay = day;
+      state.currentStopIdx = 0;
+      state.currentImageIdx = 0;
+
+      // Re-render map pins/routes for the selected day
+      renderMapForCurrentDay();
+
+      // Rebuild controls to update active state
+      buildDayFilterControl();
+      buildNextDayControl();
+
+      // Show the first stop of the selected day (if any)
+      const stopsForDay = day === 0 ? state.stops : (state.stopsByDay[day] || []);
+      if (stopsForDay.length > 0) {
+        showAttractionCard(stopsForDay[0], 0, stopsForDay.length);
+        // Fit map to the day's stops
+        const bounds = stopsForDay
+          .filter(s => s.lat && s.lng)
+          .map(s => [s.lat, s.lng]);
+        if (bounds.length > 0) map.fitBounds(bounds, { padding: [40, 40] });
+      } else {
+        hideAttractionCard();
+      }
+    }
+
+    // ─── Map Rendering (Task 9.7) ────────────────────────────────────────────────
+    function renderMapForCurrentDay() {
       markersLayer.clearLayers();
       routeLayer.clearLayers();
 
+      const days = state.currentDay === 0
+        ? Object.keys(state.stopsByDay).map(Number).sort((a, b) => a - b)
+        : [state.currentDay];
+
+      days.forEach(day => {
+        const dayStops = state.stopsByDay[day] || [];
+        const color = getColor(day);
+        const latlngs = [];
+
+        dayStops.forEach((stop, idx) => {
+          if (stop.lat && stop.lng) {
+            const icon = createColoredIcon(color);
+            const marker = L.marker([stop.lat, stop.lng], { icon })
+              .addTo(markersLayer)
+              .bindPopup(`<b>${stop.name}</b><br><b>Day:</b> ${day}<br>${stop.description}`);
+
+            // Clicking a pin opens the Attraction Card and updates state
+            marker.on("click", () => {
+              state.currentDay = day;
+              state.currentStopIdx = idx;
+              state.currentImageIdx = 0;
+              buildDayFilterControl();
+              buildNextDayControl();
+              showAttractionCard(stop, idx, dayStops.length);
+            });
+
+            latlngs.push([stop.lat, stop.lng]);
+          }
+        });
+
+        if (latlngs.length > 1) {
+          const routeLine = L.polyline(latlngs, { color, weight: 4, opacity: 0.8 }).addTo(routeLayer);
+          L.polylineDecorator(routeLine, {
+            patterns: [{
+              offset: "10%", repeat: "20%",
+              symbol: L.Symbol.arrowHead({
+                pixelSize: 12, polygon: true,
+                pathOptions: { color, fillColor: color, fillOpacity: 0.9, weight: 0 }
+              })
+            }]
+          }).addTo(routeLayer);
+        }
+      });
+    }
+
+    // ─── Attraction Card (Task 9.3) ──────────────────────────────────────────────
+    function formatTime(timeStr) {
+      if (!timeStr) return "";
+      const [h, m] = timeStr.split(":").map(Number);
+      const period = h >= 12 ? "PM" : "AM";
+      const hour12 = h % 12 || 12;
+      return `${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${period}`;
+    }
+
+    function renderStars(rating) {
+      const full = Math.floor(rating);
+      const half = rating - full >= 0.5 ? 1 : 0;
+      const empty = 5 - full - half;
+      return "★".repeat(full) + (half ? "½" : "") + "☆".repeat(empty);
+    }
+
+    function showAttractionCard(stop, idxInDay, totalInDay) {
+      const panel = document.getElementById("attraction-panel");
+      panel.classList.add("active");
+
+      // Image carousel
+      const images = stop.image_urls && stop.image_urls.length > 0 ? stop.image_urls : [];
+      const imgEl = document.getElementById("attraction-image");
+      const imgPrev = document.getElementById("img-prev");
+      const imgNext = document.getElementById("img-next");
+
+      if (images.length > 0) {
+        imgEl.src = images[state.currentImageIdx] || images[0];
+        imgEl.alt = stop.name;
+        imgEl.style.display = "block";
+      } else {
+        // Placeholder image
+        imgEl.src = "https://via.placeholder.com/320x200?text=No+Image";
+        imgEl.alt = "No image available";
+        imgEl.style.display = "block";
+      }
+
+      imgPrev.disabled = state.currentImageIdx <= 0 || images.length <= 1;
+      imgNext.disabled = state.currentImageIdx >= images.length - 1 || images.length <= 1;
+
+      // Store images on the element for carousel navigation
+      panel.dataset.images = JSON.stringify(images);
+
+      // Name
+      document.getElementById("card-name").textContent = stop.name;
+
+      // Date/time
+      const timeFormatted = formatTime(stop.time);
+      document.getElementById("card-datetime").textContent =
+        `Day ${stop.day}${timeFormatted ? " · " + timeFormatted : ""}`;
+
+      // Rating
+      const rating = typeof stop.rating === "number" ? stop.rating : 0;
+      const reviewCount = stop.review_count || 0;
+      document.getElementById("card-stars").textContent = renderStars(rating);
+      document.getElementById("card-rating-text").textContent =
+        `${rating.toFixed(1)} (${reviewCount.toLocaleString()} reviews)`;
+
+      // Category
+      document.getElementById("card-category").textContent = stop.category || "景點";
+
+      // AI Notes
+      document.getElementById("card-notes").textContent = stop.ai_notes || "";
+
+      // Website
+      const websiteEl = document.getElementById("card-website");
+      if (stop.website_url) {
+        websiteEl.href = stop.website_url;
+        websiteEl.style.display = "inline-block";
+      } else {
+        websiteEl.style.display = "none";
+      }
+
+      // Navigation arrows (Task 9.4)
+      document.getElementById("stop-prev").disabled = idxInDay <= 0;
+      document.getElementById("stop-next").disabled = idxInDay >= totalInDay - 1;
+      document.getElementById("stop-position").textContent = `${idxInDay + 1} of ${totalInDay}`;
+    }
+
+    function hideAttractionCard() {
+      document.getElementById("attraction-panel").classList.remove("active");
+    }
+
+    // ─── Image Carousel Navigation (Task 9.3) ────────────────────────────────────
+    function prevImage() {
+      const panel = document.getElementById("attraction-panel");
+      const images = JSON.parse(panel.dataset.images || "[]");
+      if (state.currentImageIdx > 0) {
+        state.currentImageIdx--;
+        document.getElementById("attraction-image").src = images[state.currentImageIdx];
+        document.getElementById("img-prev").disabled = state.currentImageIdx <= 0;
+        document.getElementById("img-next").disabled = false;
+      }
+    }
+
+    function nextImage() {
+      const panel = document.getElementById("attraction-panel");
+      const images = JSON.parse(panel.dataset.images || "[]");
+      if (state.currentImageIdx < images.length - 1) {
+        state.currentImageIdx++;
+        document.getElementById("attraction-image").src = images[state.currentImageIdx];
+        document.getElementById("img-prev").disabled = false;
+        document.getElementById("img-next").disabled = state.currentImageIdx >= images.length - 1;
+      }
+    }
+
+    // ─── Stop Navigation (Task 9.4) ──────────────────────────────────────────────
+    function prevStop() {
+      if (state.currentStopIdx <= 0) return;
+      state.currentStopIdx--;
+      state.currentImageIdx = 0;
+      const stopsForDay = state.stopsByDay[state.currentDay] || [];
+      const stop = stopsForDay[state.currentStopIdx];
+      if (stop) {
+        showAttractionCard(stop, state.currentStopIdx, stopsForDay.length);
+        if (stop.lat && stop.lng) map.setView([stop.lat, stop.lng], map.getZoom());
+      }
+    }
+
+    function nextStop() {
+      const stopsForDay = state.stopsByDay[state.currentDay] || [];
+      if (state.currentStopIdx >= stopsForDay.length - 1) return;
+      state.currentStopIdx++;
+      state.currentImageIdx = 0;
+      const stop = stopsForDay[state.currentStopIdx];
+      if (stop) {
+        showAttractionCard(stop, state.currentStopIdx, stopsForDay.length);
+        if (stop.lat && stop.lng) map.setView([stop.lat, stop.lng], map.getZoom());
+      }
+    }
+
+    // ─── Show Stops on Map (Task 9.7) ────────────────────────────────────────────
+    function showStopsOnMap(stops) {
       if (!stops || stops.length === 0) {
         renderLegend([]);
         return;
       }
 
-      const bounds = [];
-
-      const sortedStops = [...stops].sort((a, b) => {
-        if ((a.day || 1) !== (b.day || 1)) {
-          return (a.day || 1) - (b.day || 1);
-        }
-        return 0;
+      // Build stopsByDay
+      const byDay = {};
+      const sorted = [...stops].sort((a, b) => {
+        const da = a.day || 1, db = b.day || 1;
+        return da !== db ? da - db : 0;
       });
-
-      const stopsByDay = {};
-
-      sortedStops.forEach(stop => {
+      sorted.forEach(stop => {
         const day = stop.day || 1;
-
-        if (!stopsByDay[day]) {
-          stopsByDay[day] = [];
-        }
-
-        stopsByDay[day].push(stop);
+        if (!byDay[day]) byDay[day] = [];
+        byDay[day].push(stop);
       });
 
-      Object.keys(stopsByDay).forEach(day => {
-        const dayStops = stopsByDay[day];
-        const color = getColor(Number(day));
-        const latlngs = [];
+      // Update global state
+      state.stops = sorted;
+      state.stopsByDay = byDay;
+      state.totalDays = Math.max(...Object.keys(byDay).map(Number));
+      state.currentDay = 1;
+      state.currentStopIdx = 0;
+      state.currentImageIdx = 0;
 
-        dayStops.forEach(stop => {
-          if (stop.lat && stop.lng) {
-            const icon = createColoredIcon(color);
-
-            L.marker([stop.lat, stop.lng], { icon: icon })
-              .addTo(markersLayer)
-              .bindPopup(
-                `<b>${stop.name}</b><br>
-                 <b>Day:</b> ${day}<br>
-                 ${stop.description}`
-              );
-
-            latlngs.push([stop.lat, stop.lng]);
-            bounds.push([stop.lat, stop.lng]);
-          }
-        });
-
-        if (latlngs.length > 1) {
-          const routeLine = L.polyline(latlngs, {
-            color: color,
-            weight: 4,
-            opacity: 0.8
-          }).addTo(routeLayer);
-
-          L.polylineDecorator(routeLine, {
-            patterns: [
-              {
-                offset: "10%",
-                repeat: "20%",
-                symbol: L.Symbol.arrowHead({
-                  pixelSize: 12,
-                  polygon: true,
-                  pathOptions: {
-                    color: color,
-                    fillColor: color,
-                    fillOpacity: 0.9,
-                    weight: 0
-                  }
-                })
-              }
-            ]
-          }).addTo(routeLayer);
-        }
-      });
-
+      renderMapForCurrentDay();
       renderLegend(stops);
+      buildDayFilterControl();
+      buildNextDayControl();
 
-      if (bounds.length > 0) {
-        map.fitBounds(bounds, { padding: [40, 40] });
+      // Show first stop of Day 1
+      const firstDayStops = byDay[1] || [];
+      if (firstDayStops.length > 0) {
+        showAttractionCard(firstDayStops[0], 0, firstDayStops.length);
+        const bounds = firstDayStops.filter(s => s.lat && s.lng).map(s => [s.lat, s.lng]);
+        if (bounds.length > 0) map.fitBounds(bounds, { padding: [40, 40] });
       }
     }
 
+    // ─── Plan Trip via SSE (Task 9.6) ────────────────────────────────────────────
     async function planTrip() {
       const resultBox = document.getElementById("result");
+      const progressBar = document.getElementById("progress-bar");
 
       const origin = document.getElementById("origin").value.trim();
       const destination = document.getElementById("destination").value.trim();
@@ -266,50 +780,74 @@
       const interestsRaw = document.getElementById("interests").value.trim();
 
       if (!origin || !destination || !travelers || Number(travelers) < 1) {
-        resultBox.textContent =
-          "Please enter origin, destination, and number of travelers.";
+        resultBox.textContent = "Please enter origin, destination, and number of travelers.";
         return;
       }
 
-      const body = {
-        origin: origin,
-        destination: destination,
+      // Build query string for SSE endpoint
+      const params = new URLSearchParams({
+        origin,
+        destination,
         travelers: Number(travelers),
-        interests: interestsRaw
-          ? interestsRaw.split(",").map(item => item.trim()).filter(Boolean)
-          : []
-      };
-
-      if (budget) {
-        body.budget_usd = Number(budget);
+      });
+      if (budget) params.set("budget_usd", Number(budget));
+      if (days) params.set("days", Number(days));
+      if (interestsRaw) {
+        interestsRaw.split(",").map(i => i.trim()).filter(Boolean)
+          .forEach(interest => params.append("interests", interest));
       }
 
-      if (days) {
-        body.days = Number(days);
-      }
-
+      // Show progress bar
+      progressBar.textContent = "Connecting to trip planner...";
+      progressBar.classList.add("active");
       resultBox.textContent = "Generating detailed trip plan...";
+      hideAttractionCard();
 
       try {
-        const response = await fetch("/plan-trip", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(body)
+        const evtSource = new EventSource(`/plan-trip/stream?${params.toString()}`);
+
+        evtSource.addEventListener("progress", (e) => {
+          try {
+            const payload = JSON.parse(e.data);
+            progressBar.textContent = payload.message || "Processing...";
+          } catch {
+            progressBar.textContent = e.data;
+          }
         });
 
-        const data = await response.json();
+        evtSource.addEventListener("complete", (e) => {
+          evtSource.close();
+          progressBar.classList.remove("active");
+          try {
+            const data = JSON.parse(e.data);
+            resultBox.textContent = data.plan || "";
+            showStopsOnMap(data.stops || []);
+          } catch (err) {
+            resultBox.textContent = "Error parsing response: " + err;
+          }
+        });
 
-        if (!response.ok) {
-          resultBox.textContent = "Error: " + JSON.stringify(data, null, 2);
-          return;
-        }
+        evtSource.addEventListener("error", (e) => {
+          evtSource.close();
+          progressBar.classList.remove("active");
+          try {
+            const payload = JSON.parse(e.data);
+            resultBox.textContent = "Error: " + (payload.message || JSON.stringify(payload));
+          } catch {
+            resultBox.textContent = "An error occurred while generating the trip plan.";
+          }
+        });
 
-        resultBox.textContent = data.plan;
-        showStopsOnMap(data.stops);
+        // Fallback: native onerror fires when the connection itself fails
+        evtSource.onerror = (e) => {
+          if (evtSource.readyState === EventSource.CLOSED) return; // already handled
+          evtSource.close();
+          progressBar.classList.remove("active");
+          resultBox.textContent = "Connection error. Please try again.";
+        };
 
       } catch (error) {
+        progressBar.classList.remove("active");
         resultBox.textContent = "Request failed: " + error;
       }
     }

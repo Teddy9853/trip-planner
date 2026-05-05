@@ -39,6 +39,10 @@
       cursor: pointer;
     }
 
+    button:hover {
+      background: #1d4ed8;
+    }
+
     #map {
       height: 450px;
       border-radius: 12px;
@@ -108,6 +112,7 @@
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-polylinedecorator/dist/leaflet.polylineDecorator.js"></script>
 
   <script>
     let map = L.map("map").setView([20, 0], 2);
@@ -198,7 +203,7 @@
         const color = getColor(Number(day));
         const latlngs = [];
 
-        dayStops.forEach((stop, index) => {
+        dayStops.forEach(stop => {
           if (stop.lat && stop.lng) {
             const icon = createColoredIcon(color);
 
@@ -216,10 +221,29 @@
         });
 
         if (latlngs.length > 1) {
-          L.polyline(latlngs, {
+          const routeLine = L.polyline(latlngs, {
             color: color,
             weight: 4,
             opacity: 0.8
+          }).addTo(routeLayer);
+
+          L.polylineDecorator(routeLine, {
+            patterns: [
+              {
+                offset: "10%",
+                repeat: "20%",
+                symbol: L.Symbol.arrowHead({
+                  pixelSize: 12,
+                  polygon: true,
+                  pathOptions: {
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.9,
+                    weight: 0
+                  }
+                })
+              }
+            ]
           }).addTo(routeLayer);
         }
       });

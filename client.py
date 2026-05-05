@@ -6,8 +6,6 @@ data = {
     "origin": "New York",
     "destination": "Japan",
     "travelers": 2,
-
-    # Optional fields
     "budget_usd": 3000,
     "days": 5,
     "interests": ["food", "anime", "culture"]
@@ -18,11 +16,10 @@ response = requests.post(url, json=data)
 if response.status_code == 200:
     result = response.json()
 
-    print("\nFROM:", result["origin"])
-    print("TO:", result["destination"])
-    print("TRAVELERS:", result["travelers"])
-    print("\nPLAN:\n")
     print(result["plan"])
+    print("\nSTOPS:")
+    for stop in result["stops"]:
+        print(stop)
 else:
-    print("Error:", response.status_code)
+    print(response.status_code)
     print(response.text)

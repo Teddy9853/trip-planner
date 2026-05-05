@@ -4,10 +4,15 @@
   <meta charset="UTF-8">
   <title>AI Trip Planner</title>
 
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 850px;
+      max-width: 950px;
       margin: 40px auto;
       padding: 20px;
       background: #f5f5f5;
@@ -37,10 +42,6 @@
       cursor: pointer;
     }
 
-    button:hover {
-      background: #1d4ed8;
-    }
-
     pre {
       background: #111827;
       color: #f9fafb;
@@ -50,11 +51,10 @@
       line-height: 1.5;
     }
 
-    .hint {
-      color: #666;
-      font-size: 14px;
-      margin-top: -10px;
-      margin-bottom: 12px;
+    #map {
+      height: 450px;
+      border-radius: 12px;
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -80,28 +80,66 @@
 
     <label>Interests</label>
     <textarea id="interests" placeholder="Example: food, culture, shopping"></textarea>
-    <div class="hint">Separate interests with commas</div>
 
     <button onclick="planTrip()">Generate Trip Plan</button>
+
+    <h2>Map</h2>
+    <div id="map"></div>
 
     <h2>Result</h2>
     <pre id="result">Your trip plan will appear here.</pre>
   </div>
 
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
   <script>
+    let map = L.map("map").setView([20, 0], 2);
+    let markersLayer = L.layerGroup().addTo(map);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors"
+    }).addTo(map);
+
+    function showStopsOnMap(stops) {
+      markersLayer.clearLayers();
+
+      if (!stops || stops.length === 0) {
+        return;
+      }
+
+      const bounds = [];
+
+      stops.forEach((stop, index) => {
+        if (stop.lat && stop.lng) {
+          const marker = L.marker([stop.lat, stop.lng])
+            .addTo(markersLayer)
+            .bindPopup(
+              `<b>${index + 1}. ${stop.name}</b><br>
+               Day: ${stop.day}<br>
+               ${stop.description}`
+            );
+
+          bounds.push([stop.lat, stop.lng]);
+        }
+      });
+
+      if (bounds.length > 0) {
+        map.fitBounds(bounds, { padding: [40, 40] });
+      }
+    }
+
     async function planTrip() {
       const resultBox = document.getElementById("result");
 
       const origin = document.getElementById("origin").value.trim();
       const destination = document.getElementById("destination").value.trim();
       const travelers = document.getElementById("travelers").value;
-
       const budget = document.getElementById("budget").value;
       const days = document.getElementById("days").value;
       const interestsRaw = document.getElementById("interests").value.trim();
 
       if (!origin || !destination || !travelers || Number(travelers) < 1) {
-        resultBox.textContent = "Please enter origin, destination, and number of travelers.";
+        resultBox.textContent = "Please enter origin, destination, and travelers.";
         return;
       }
 
@@ -114,13 +152,8 @@
           : []
       };
 
-      if (budget) {
-        body.budget_usd = Number(budget);
-      }
-
-      if (days) {
-        body.days = Number(days);
-      }
+      if (budget) body.budget_usd = Number(budget);
+      if (days) body.days = Number(days);
 
       resultBox.textContent = "Generating trip plan...";
 
@@ -141,6 +174,7 @@
         }
 
         resultBox.textContent = data.plan;
+        showStopsOnMap(data.stops);
 
       } catch (error) {
         resultBox.textContent = "Request failed: " + error;

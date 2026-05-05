@@ -3,3 +3,4 @@ __pycache__
 .venv
 .kiro
 .vscode
+chroma_db

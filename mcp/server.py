@@ -21,11 +21,11 @@ from pydantic import BaseModel, Field
 class MCPToolResult(BaseModel):
     """Standardised envelope for every MCP tool response (requirement 5.6)."""
 
-    tool_name: str = Field(..., description="呼叫的工具名稱")
-    success: bool = Field(..., description="工具呼叫是否成功")
-    data: Optional[Dict[str, Any]] = Field(default=None, description="成功時的回傳資料")
-    error_code: Optional[str] = Field(default=None, description="失敗時的錯誤代碼")
-    error_message: Optional[str] = Field(default=None, description="失敗時的錯誤描述")
+    tool_name: str = Field(..., description="Name of the tool called")
+    success: bool = Field(..., description="Whether the tool call succeeded")
+    data: Optional[Dict[str, Any]] = Field(default=None, description="Return data on success")
+    error_code: Optional[str] = Field(default=None, description="Error code on failure")
+    error_message: Optional[str] = Field(default=None, description="Error description on failure")
 
 
 # ---------------------------------------------------------------------------
@@ -35,31 +35,31 @@ class MCPToolResult(BaseModel):
 class WikipediaResult(BaseModel):
     """Parsed result from the wikipedia_search tool."""
 
-    title: str = Field(..., description="Wikipedia 頁面標題")
-    summary: str = Field(..., description="摘要段落")
-    full_text: str = Field(..., description="完整頁面文字（已清理 HTML）")
-    url: str = Field(..., description="Wikipedia 頁面 URL")
-    categories: List[str] = Field(default_factory=list, description="頁面分類標籤")
+    title: str = Field(..., description="Wikipedia page title")
+    summary: str = Field(..., description="Summary paragraph")
+    full_text: str = Field(..., description="Full page text (HTML stripped)")
+    url: str = Field(..., description="Wikipedia page URL")
+    categories: List[str] = Field(default_factory=list, description="Page category tags")
 
 
 class WikivoyageResult(BaseModel):
     """Parsed result from the wikivoyage_search tool."""
 
-    title: str = Field(..., description="Wikivoyage 頁面標題")
-    tips: str = Field(..., description="旅遊貼士與在地建議")
-    best_time: str = Field(default="", description="最佳造訪時間")
-    url: str = Field(..., description="Wikivoyage 頁面 URL")
+    title: str = Field(..., description="Wikivoyage page title")
+    tips: str = Field(..., description="Travel tips and local recommendations")
+    best_time: str = Field(default="", description="Best time to visit")
+    url: str = Field(..., description="Wikivoyage page URL")
 
 
 class NominatimResult(BaseModel):
     """Parsed result from the nominatim_geocode tool."""
 
-    display_name: str = Field(..., description="完整地址顯示名稱")
-    lat: float = Field(..., ge=-90.0, le=90.0, description="緯度")
-    lng: float = Field(..., ge=-180.0, le=180.0, description="經度")
-    osm_type: str = Field(..., description="OSM 物件類型（node / way / relation）")
-    category: str = Field(default="", description="景點類型（來自 OSM tag）")
-    address: Dict[str, Any] = Field(default_factory=dict, description="結構化地址欄位")
+    display_name: str = Field(..., description="Full address display name")
+    lat: float = Field(..., ge=-90.0, le=90.0, description="Latitude")
+    lng: float = Field(..., ge=-180.0, le=180.0, description="Longitude")
+    osm_type: str = Field(..., description="OSM object type (node / way / relation)")
+    category: str = Field(default="", description="Attraction type (from OSM tag)")
+    address: Dict[str, Any] = Field(default_factory=dict, description="Structured address fields")
 
 
 # ---------------------------------------------------------------------------
@@ -176,34 +176,62 @@ class MCPServer:
     async def wikipedia_search(
         self, attraction_name: str, language: str = "en"
     ) -> WikipediaResult:
-        """Fetch and parse a Wikipedia page for the given attraction."""
-        encoded_title = quote(attraction_name, safe="")
-        base_url = f"https://{language}.wikipedia.org/api/rest_v1/page"
-        timeout = httpx.Timeout(10.0)
+        """Fetch and parse a Wikipedia page for the given attraction.
 
-        # Fetch summary (title, extract, categories)
-        summary_url = f"{base_url}/summary/{encoded_title}"
-        summary_resp = await self._client.get(summary_url, timeout=timeout)
+        Uses the MediaWiki opensearch API first to resolve the correct English
+        page title (handles non-ASCII / non-English input names), then fetches
+        the REST summary and HTML for that resolved title.
+        """
+        timeout = httpx.Timeout(10.0)
+        base_url = f"https://{language}.wikipedia.org"
+
+        # Step 1: resolve the best-matching English page title via opensearch
+        search_resp = await self._client.get(
+            f"{base_url}/w/api.php",
+            params={
+                "action": "opensearch",
+                "search": attraction_name,
+                "limit": 1,
+                "namespace": 0,
+                "format": "json",
+            },
+            timeout=timeout,
+        )
+        search_resp.raise_for_status()
+        search_data = search_resp.json()
+        # opensearch returns [query, [titles], [descriptions], [urls]]
+        titles = search_data[1] if len(search_data) > 1 else []
+        if not titles:
+            raise ValueError(f"Wikipedia: no results for '{attraction_name}'")
+
+        resolved_title = titles[0]
+        encoded_title = quote(resolved_title.replace(" ", "_"), safe="")
+        rest_base = f"{base_url}/api/rest_v1/page"
+
+        # Step 2: fetch summary for the resolved title
+        summary_resp = await self._client.get(
+            f"{rest_base}/summary/{encoded_title}", timeout=timeout
+        )
         summary_resp.raise_for_status()
         summary_data = summary_resp.json()
 
-        title = summary_data.get("title", attraction_name)
+        title = summary_data.get("title", resolved_title)
         summary = summary_data.get("extract", "")
         categories_raw = summary_data.get("categories", [])
-        # categories may be a list of dicts or strings depending on API version
         if categories_raw and isinstance(categories_raw[0], dict):
             categories = [c.get("title", "") for c in categories_raw]
         else:
             categories = [str(c) for c in categories_raw]
 
-        # Fetch full HTML page and extract clean text
-        html_url = f"{base_url}/html/{encoded_title}"
-        html_resp = await self._client.get(html_url, timeout=timeout)
+        # Step 3: fetch full HTML and extract clean text
+        html_resp = await self._client.get(
+            f"{rest_base}/html/{encoded_title}", timeout=timeout
+        )
         html_resp.raise_for_status()
         soup = BeautifulSoup(html_resp.text, "html.parser")
         full_text = soup.get_text(separator=" ", strip=True)
 
-        page_url = f"https://{language}.wikipedia.org/wiki/{encoded_title}"
+        page_url = f"{base_url}/wiki/{encoded_title}"
 
         return WikipediaResult(
             title=title,
@@ -218,13 +246,12 @@ class MCPServer:
     ) -> WikivoyageResult:
         """Fetch and parse a Wikivoyage page for the given attraction.
 
-        Strategy:
-        1. Try direct page lookup by attraction_name via REST summary API.
-        2. If 404, try "{attraction_name} {city}".
-        3. If still 404, try just city.
-        4. If all fail, raise ValueError with a descriptive message.
+        Uses opensearch to resolve the correct English page title first
+        (handles non-ASCII / non-English input names), then falls back to
+        city-level lookup if no direct match is found.
         """
         timeout = httpx.Timeout(10.0)
+        base_url = "https://en.wikivoyage.org"
 
         def _extract_best_time(text: str) -> str:
             """Return the first sentence that mentions a climate/season keyword."""
@@ -237,44 +264,52 @@ class MCPServer:
                             return sentence.strip() + "."
             return ""
 
-        async def _try_page(page_name: str) -> WikivoyageResult | None:
-            """Attempt to fetch a Wikivoyage REST summary for page_name.
+        async def _opensearch(query: str) -> str | None:
+            """Return the first opensearch result title, or None."""
+            resp = await self._client.get(
+                f"{base_url}/w/api.php",
+                params={
+                    "action": "opensearch",
+                    "search": query,
+                    "limit": 1,
+                    "namespace": 0,
+                    "format": "json",
+                },
+                timeout=timeout,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            titles = data[1] if len(data) > 1 else []
+            return titles[0] if titles else None
 
-            Returns a WikivoyageResult on success, or None on 404.
-            Raises for other HTTP errors.
-            """
-            encoded = quote(page_name.replace(" ", "_"), safe="")
-            url = f"https://en.wikivoyage.org/api/rest_v1/page/summary/{encoded}"
+        async def _fetch_page(page_title: str) -> WikivoyageResult | None:
+            """Fetch REST summary for a resolved page title."""
+            encoded = quote(page_title.replace(" ", "_"), safe="")
+            url = f"{base_url}/api/rest_v1/page/summary/{encoded}"
             resp = await self._client.get(url, timeout=timeout)
             if resp.status_code == 404:
                 return None
             resp.raise_for_status()
             data = resp.json()
             tips = data.get("extract", "")
-            title = data.get("title", page_name)
+            title = data.get("title", page_title)
             best_time = _extract_best_time(tips)
-            page_url = f"https://en.wikivoyage.org/wiki/{encoded}"
-            return WikivoyageResult(
-                title=title,
-                tips=tips,
-                best_time=best_time,
-                url=page_url,
-            )
+            page_url = f"{base_url}/wiki/{encoded}"
+            return WikivoyageResult(title=title, tips=tips, best_time=best_time, url=page_url)
 
-        # Attempt 1: attraction_name directly
-        result = await _try_page(attraction_name)
-        if result is not None:
-            return result
+        # Attempt 1: opensearch with attraction_name
+        resolved = await _opensearch(attraction_name)
+        if resolved:
+            result = await _fetch_page(resolved)
+            if result is not None:
+                return result
 
-        # Attempt 2: "{attraction_name} {city}"
-        result = await _try_page(f"{attraction_name} {city}")
-        if result is not None:
-            return result
-
-        # Attempt 3: city alone
-        result = await _try_page(city)
-        if result is not None:
-            return result
+        # Attempt 2: opensearch with city
+        resolved = await _opensearch(city)
+        if resolved:
+            result = await _fetch_page(resolved)
+            if result is not None:
+                return result
 
         raise ValueError(
             f"Wikivoyage page not found for: {attraction_name}, {city}"
@@ -283,26 +318,43 @@ class MCPServer:
     async def nominatim_geocode(
         self, query: str, country: str = ""
     ) -> NominatimResult:
-        """Query OSM Nominatim for coordinates and address data."""
+        """Query OSM Nominatim for coordinates and address data.
+
+        Tries the query as-is first.  If no results are returned (common when
+        the name is in a non-Latin script), retries with just the city/country
+        portion stripped from the query to let Nominatim's own search handle
+        transliteration.
+        """
         timeout = httpx.Timeout(5.0)
         headers = {"User-Agent": "travel-planner-enhanced/1.0 (educational project)"}
-        params = {
-            "q": query,
-            "format": "json",
-            "limit": 1,
-            "addressdetails": 1,
-        }
-        if country:
-            params["countrycodes"] = country
 
-        resp = await self._client.get(
-            "https://nominatim.openstreetmap.org/search",
-            params=params,
-            headers=headers,
-            timeout=timeout,
-        )
-        resp.raise_for_status()
-        results = resp.json()
+        async def _search(q: str) -> list:
+            params: dict = {
+                "q": q,
+                "format": "json",
+                "limit": 1,
+                "addressdetails": 1,
+            }
+            if country:
+                params["countrycodes"] = country
+            resp = await self._client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params=params,
+                headers=headers,
+                timeout=timeout,
+            )
+            resp.raise_for_status()
+            return resp.json()
+
+        results = await _search(query)
+
+        # If the full query (which may contain CJK characters) returns nothing,
+        # split off the first token (attraction name) and retry with just the
+        # remainder (city + country), which is more likely to be in Latin script.
+        if not results:
+            parts = query.split(None, 1)
+            if len(parts) > 1:
+                results = await _search(parts[1])
 
         if not results:
             raise ValueError(f"Nominatim: no results for query: {query}")

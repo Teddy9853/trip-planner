@@ -92,7 +92,7 @@ class Stop(BaseModel):
     time: str = Field(default="09:00", pattern=r"^\d{2}:\d{2}$")
     rating: float = Field(default=0.0, ge=0.0, le=5.0)
     review_count: int = Field(default=0, ge=0)
-    category: str = Field(default="景點")
+    category: str = Field(default="Attraction")
     ai_notes: str = Field(default="")
     website_url: Optional[str] = Field(default=None)
     image_urls: List[str] = Field(default_factory=list, max_length=5)
@@ -101,13 +101,13 @@ class Stop(BaseModel):
 class BudgetAnalysis(BaseModel):
     """Budget breakdown produced by Budget_Agent."""
 
-    transportation: float = Field(default=0.0, ge=0.0, description="交通費用估算（USD）")
-    accommodation: float = Field(default=0.0, ge=0.0, description="住宿費用估算（USD）")
-    food: float = Field(default=0.0, ge=0.0, description="餐飲費用估算（USD）")
-    activities: float = Field(default=0.0, ge=0.0, description="活動費用估算（USD）")
-    total: float = Field(default=0.0, ge=0.0, description="總預算估算（USD）")
-    per_person: float = Field(default=0.0, ge=0.0, description="每人費用估算（USD）")
-    notes: str = Field(default="", description="預算備註與建議")
+    transportation: float = Field(default=0.0, ge=0.0, description="Estimated transportation cost (USD)")
+    accommodation: float = Field(default=0.0, ge=0.0, description="Estimated accommodation cost (USD)")
+    food: float = Field(default=0.0, ge=0.0, description="Estimated food & dining cost (USD)")
+    activities: float = Field(default=0.0, ge=0.0, description="Estimated activities cost (USD)")
+    total: float = Field(default=0.0, ge=0.0, description="Total estimated budget (USD)")
+    per_person: float = Field(default=0.0, ge=0.0, description="Estimated cost per person (USD)")
+    notes: str = Field(default="", description="Budget notes and recommendations")
 
 
 class TransportSuggestions(BaseModel):
@@ -115,17 +115,17 @@ class TransportSuggestions(BaseModel):
 
     daily_suggestions: List[dict] = Field(
         default_factory=list,
-        description="每日交通建議清單，每項包含 day、mode、description、estimated_time",
+        description="Daily transport suggestions list, each containing day, mode, description, estimated_time",
     )
-    general_tips: str = Field(default="", description="整體交通建議")
+    general_tips: str = Field(default="", description="Overall transport tips")
 
 
 class ProgressEvent(BaseModel):
     """SSE progress event pushed to the frontend during trip planning."""
 
-    event: str = Field(..., description="事件類型：progress | complete | error")
-    message: str = Field(..., description="人類可讀的進度訊息")
-    data: Optional[dict] = Field(default=None, description="complete 時包含完整 TripResponse")
+    event: str = Field(..., description="Event type: progress | complete | error")
+    message: str = Field(..., description="Human-readable progress message")
+    data: Optional[dict] = Field(default=None, description="Full TripResponse on complete")
 
 
 class TripResponse(BaseModel):
@@ -167,7 +167,7 @@ async def _validate_location(location: str) -> None:
     except Exception:
         raise HTTPException(
             status_code=422,
-            detail=f"無法識別地點：{location}，請確認拼寫是否正確",
+            detail=f"Location not recognized: {location}. Please check the spelling.",
         )
 
 
@@ -217,7 +217,7 @@ async def plan_trip(req: TripRequest):
         # Requirement 9.3 — return HTTP 408 with TIMEOUT_ERROR
         raise HTTPException(
             status_code=408,
-            detail={"error_code": "TIMEOUT_ERROR", "message": "行程產生逾時，請重試"},
+            detail={"error_code": "TIMEOUT_ERROR", "message": "Trip planning timed out, please retry"},
         )
     except HTTPException:
         raise
@@ -228,12 +228,12 @@ async def plan_trip(req: TripRequest):
 
 @app.get("/plan-trip/stream", operation_id="plan_trip_stream")
 async def plan_trip_stream(
-    origin: str = Query(..., description="出發地"),
-    destination: str = Query(..., description="目的地"),
-    travelers: int = Query(..., ge=1, description="旅客人數"),
-    budget_usd: Optional[int] = Query(None, ge=0, description="預算（USD）"),
-    days: Optional[int] = Query(None, ge=1, le=30, description="行程天數"),
-    interests: List[str] = Query(default=[], description="興趣偏好"),
+    origin: str = Query(..., description="Origin"),
+    destination: str = Query(..., description="Destination"),
+    travelers: int = Query(..., ge=1, description="Number of travelers"),
+    budget_usd: Optional[int] = Query(None, ge=0, description="Budget (USD)"),
+    days: Optional[int] = Query(None, ge=1, le=30, description="Trip duration (days)"),
+    interests: List[str] = Query(default=[], description="Interests"),
 ):
     """
     SSE streaming trip planning endpoint (requirement 9.2).
@@ -325,7 +325,7 @@ async def plan_trip_stream(
             yield {
                 "event": "error",
                 "data": json.dumps(
-                    {"error_code": "TIMEOUT_ERROR", "message": "行程產生逾時，請重試"},
+                    {"error_code": "TIMEOUT_ERROR", "message": "Trip planning timed out, please retry"},
                     ensure_ascii=False,
                 ),
             }

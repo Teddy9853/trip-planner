@@ -29,26 +29,26 @@ logger = logging.getLogger(__name__)
 class DraftStop(BaseModel):
     """A basic stop produced by the Itinerary_Agent before enrichment."""
 
-    name: str = Field(..., description="景點名稱")
-    day: int = Field(..., ge=1, description="行程天數")
-    time: str = Field(default="09:00", pattern=r"^\d{2}:\d{2}$", description="建議到達時間（HH:MM）")
-    description: str = Field(default="", description="活動描述")
-    suggested_duration_hours: float = Field(default=1.0, ge=0.0, description="建議停留時間（小時）")
-    city: str = Field(default="", description="所在城市（用於 RAG 查詢）")
-    country: str = Field(default="", description="所在國家（用於 RAG 查詢）")
+    name: str = Field(..., description="Attraction name")
+    day: int = Field(..., ge=1, description="Day number")
+    time: str = Field(default="09:00", pattern=r"^\d{2}:\d{2}$", description="Suggested arrival time (HH:MM)")
+    description: str = Field(default="", description="Activity description")
+    suggested_duration_hours: float = Field(default=1.0, ge=0.0, description="Suggested duration (hours)")
+    city: str = Field(default="", description="City (used for RAG query)")
+    country: str = Field(default="", description="Country (used for RAG query)")
     # Rough coordinates from LLM — may be refined by Nominatim later
-    lat: Optional[float] = Field(default=None, description="緯度（LLM 估算）")
-    lng: Optional[float] = Field(default=None, description="經度（LLM 估算）")
+    lat: Optional[float] = Field(default=None, description="Latitude (LLM estimate)")
+    lng: Optional[float] = Field(default=None, description="Longitude (LLM estimate)")
 
 
 class ItineraryDraft(BaseModel):
     """Complete itinerary draft returned by ItineraryAgent.generate_draft()."""
 
-    origin: str = Field(..., description="出發地")
-    destination: str = Field(..., description="目的地")
-    days: int = Field(..., ge=1, description="行程天數")
-    plan_text: str = Field(default="", description="人類可讀的行程說明文字")
-    stops: List[DraftStop] = Field(default_factory=list, description="每日景點清單")
+    origin: str = Field(..., description="Origin")
+    destination: str = Field(..., description="Destination")
+    days: int = Field(..., ge=1, description="Trip duration (days)")
+    plan_text: str = Field(default="", description="Human-readable itinerary description")
+    stops: List[DraftStop] = Field(default_factory=list, description="Daily attraction list")
 
 
 # ---------------------------------------------------------------------------
@@ -112,14 +112,14 @@ Create a detailed day-by-day itinerary for the following trip:
 - Interests: {interests_text}
 
 Return a JSON object with:
-1. "plan_text": a comprehensive human-readable travel plan (in Traditional Chinese, 繁體中文)
+1. "plan_text": a comprehensive human-readable travel plan (in English)
 2. "stops": an array of attraction stops
 
 Each stop must include:
 - "name": attraction name (in local language or English)
 - "day": day number (1 to {num_days})
 - "time": suggested arrival time in HH:MM format (24-hour)
-- "description": brief activity description (in Traditional Chinese)
+- "description": brief activity description (in English)
 - "suggested_duration_hours": recommended time to spend (decimal hours, e.g. 1.5)
 - "city": city where the attraction is located
 - "country": country where the attraction is located
@@ -134,13 +134,14 @@ Rules:
 - Provide realistic coordinates for each stop
 """
 
-        response = await self._openai.responses.create(
-            model="gpt-4.1-mini",
-            input=prompt,
-            text={
-                "format": {
-                    "type": "json_schema",
+        response = await self._openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
                     "name": "itinerary_draft",
+                    "strict": True,
                     "schema": {
                         "type": "object",
                         "properties": {
@@ -172,12 +173,11 @@ Rules:
                         "required": ["plan_text", "stops"],
                         "additionalProperties": False,
                     },
-                    "strict": True,
-                }
+                },
             },
         )
 
-        data = json.loads(response.output_text)
+        data = json.loads(response.choices[0].message.content)
 
         stops = [DraftStop(**s) for s in data.get("stops", [])]
         actual_days = max((s.day for s in stops), default=num_days)

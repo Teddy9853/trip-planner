@@ -79,18 +79,19 @@ Return a JSON object with these fields:
 - "activities": estimated total activities & entrance fees in USD
 - "total": sum of all above costs
 - "per_person": total divided by number of travelers
-- "notes": practical budget tips and assumptions in Traditional Chinese (繁體中文), about 100 characters
+- "notes": practical budget tips and assumptions in English, about 100 words
 
 All monetary values must be numbers (not strings).
 """
 
-        response = await self._openai.responses.create(
-            model="gpt-4.1-mini",
-            input=prompt,
-            text={
-                "format": {
-                    "type": "json_schema",
+        response = await self._openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
                     "name": "budget_analysis",
+                    "strict": True,
                     "schema": {
                         "type": "object",
                         "properties": {
@@ -108,12 +109,11 @@ All monetary values must be numbers (not strings).
                         ],
                         "additionalProperties": False,
                     },
-                    "strict": True,
-                }
+                },
             },
         )
 
-        data = json.loads(response.output_text)
+        data = json.loads(response.choices[0].message.content)
 
         logger.info(
             "BudgetAgent: total=$%.0f, per_person=$%.0f for %s → %s (%d travelers)",

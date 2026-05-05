@@ -5,17 +5,17 @@ Execution flow (requirements 7.1, 7.6, 7.7, 7.8):
 
   Step 1 (sequential):
     ItineraryAgent.generate_draft()
-    → progress_callback("正在規劃行程草稿...")
+    → progress_callback("Generating itinerary draft...")
 
   Step 2 (parallel via asyncio.gather):
     AttractionAgent.enrich_all()   ─┐
     BudgetAgent.analyze()           ├─ asyncio.gather
     TransportAgent.suggest()       ─┘
-    → progress_callback("正在查詢景點資訊...")
+    → progress_callback("Fetching attraction details...")
 
   Step 3 (sequential):
     Assemble TripResponse from all results
-    → progress_callback("正在彙整結果...")
+    → progress_callback("Assembling final response...")
     → return TripResponse
 
 Degradation (requirement 7.7, 10.4):
@@ -117,8 +117,7 @@ class OrchestratorAgent:
         # ----------------------------------------------------------------
         # Step 1 — Generate itinerary draft
         # ----------------------------------------------------------------
-        await _notify("正在規劃行程草稿...")
-
+        await _notify("Generating itinerary draft...")
         draft = None
         try:
             draft = await self._itinerary_agent.generate_draft(request)
@@ -137,14 +136,14 @@ class OrchestratorAgent:
                 travelers=request.travelers,
                 budget_usd=request.budget_usd,
                 days=request.days,
-                plan="（行程草稿生成失敗，請重試）",
+                plan="(Itinerary draft generation failed, please retry)",
                 stops=[],
             )
 
         # ----------------------------------------------------------------
         # Step 2 — Parallel enrichment, budget analysis, transport
         # ----------------------------------------------------------------
-        await _notify("正在查詢景點資訊...")
+        await _notify("Fetching attraction details...")
 
         enriched_stops: List[EnrichedStop] = []
         budget_analysis: Optional["BudgetAnalysis"] = None
@@ -197,7 +196,7 @@ class OrchestratorAgent:
         # ----------------------------------------------------------------
         # Step 3 — Assemble final TripResponse
         # ----------------------------------------------------------------
-        await _notify("正在彙整結果...")
+        await _notify("Assembling final response...")
 
         # Convert EnrichedStop → Stop (the API response model)
         stops: List[Stop] = []
@@ -230,7 +229,7 @@ class OrchestratorAgent:
                         description=ds.description,
                         lat=ds.lat if ds.lat is not None else 0.0,
                         lng=ds.lng if ds.lng is not None else 0.0,
-                        ai_notes="（資料來源：AI 生成）（座標為 AI 估算）",
+                        ai_notes="(Source: AI-generated) (Coordinates are AI-estimated)",
                     )
                 )
 

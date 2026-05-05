@@ -54,7 +54,7 @@ class EnrichedStop(BaseModel):
     # Enriched fields
     rating: float = Field(default=0.0, ge=0.0, le=5.0)
     review_count: int = Field(default=0, ge=0)
-    category: str = Field(default="景點")
+    category: str = Field(default="Attraction")
     ai_notes: str = Field(default="")
     website_url: Optional[str] = Field(default=None)
     image_urls: List[str] = Field(default_factory=list, max_length=5)
@@ -94,8 +94,7 @@ class AttractionAgent:
         - RAG failure → keep LLM coordinates, mark ai_notes with fallback label.
         - Image failure → image_urls = [].
         - Coordinate fallback → set coordinates_estimated = True and append
-          「座標為 AI 估算」to ai_notes (requirement 10.1).
-
+          "Coordinates are AI-estimated" to ai_notes (requirement 10.1).
         Requirements: 7.3, 10.1, 10.2, 10.3
         """
         # ---- RAG query ------------------------------------------------
@@ -134,8 +133,8 @@ class AttractionAgent:
             # Full RAG failure — use LLM draft values (requirement 10.3)
             lat = stop.lat if stop.lat is not None else 0.0
             lng = stop.lng if stop.lng is not None else 0.0
-            ai_notes = "（資料來源：AI 生成）（座標為 AI 估算）"
-            category = "景點"
+            ai_notes = "(Source: AI-generated) (Coordinates are AI-estimated)"
+            category = "Attraction"
             website_url = None
             coordinates_estimated = True
         else:
@@ -151,12 +150,12 @@ class AttractionAgent:
                 coordinates_estimated = True
                 # Append coordinate-estimation notice (requirement 10.1)
                 ai_notes = rag_result.ai_notes
-                if ai_notes and not ai_notes.endswith("（座標為 AI 估算）"):
-                    ai_notes += "\n\n（座標為 AI 估算）"
+                if ai_notes and not ai_notes.endswith("(Coordinates are AI-estimated)"):
+                    ai_notes += "\n\n(Coordinates are AI-estimated)"
                 elif not ai_notes:
-                    ai_notes = "（座標為 AI 估算）"
+                    ai_notes = "(Coordinates are AI-estimated)"
 
-            category = rag_result.category or "景點"
+            category = rag_result.category or "Attraction"
             website_url = rag_result.website_url
 
         enriched = EnrichedStop(

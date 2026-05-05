@@ -72,21 +72,22 @@ Daily stops:
 Return a JSON object with:
 - "daily_suggestions": array of objects, one per day, each with:
   - "day": day number (integer)
-  - "mode": primary transport mode (e.g. "地鐵 + 步行", "計程車", "公車", "租車")
-  - "description": detailed transport instructions in Traditional Chinese (繁體中文)
-  - "estimated_time": total estimated travel time between stops (e.g. "約 2 小時")
-- "general_tips": overall transport tips for the destination in Traditional Chinese (繁體中文), about 100 characters
+  - "mode": primary transport mode (e.g. "Subway + Walking", "Taxi", "Bus", "Car Rental")
+  - "description": detailed transport instructions in English
+  - "estimated_time": total estimated travel time between stops (e.g. "approx. 2 hours")
+- "general_tips": overall transport tips for the destination in English, about 100 words
 
 Cover all {draft.days} days.
 """
 
-        response = await self._openai.responses.create(
-            model="gpt-4.1-mini",
-            input=prompt,
-            text={
-                "format": {
-                    "type": "json_schema",
+        response = await self._openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
                     "name": "transport_suggestions",
+                    "strict": True,
                     "schema": {
                         "type": "object",
                         "properties": {
@@ -109,12 +110,11 @@ Cover all {draft.days} days.
                         "required": ["daily_suggestions", "general_tips"],
                         "additionalProperties": False,
                     },
-                    "strict": True,
-                }
+                },
             },
         )
 
-        data = json.loads(response.output_text)
+        data = json.loads(response.choices[0].message.content)
 
         logger.info(
             "TransportAgent: generated suggestions for %d days in %s",

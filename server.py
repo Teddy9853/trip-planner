@@ -8,6 +8,13 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from openai import OpenAI
 
+# Optional MCP support
+try:
+    from fastapi_mcp import FastApiMCP
+    MCP_AVAILABLE = True
+except ImportError:
+    MCP_AVAILABLE = False
+
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -16,20 +23,25 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
-app = FastAPI(title="AI Trip Planner")
+app = FastAPI(title="AI Trip Planner MCP Tools")
 
 
 class TripRequest(BaseModel):
-    origin: str = Field(..., json_schema_extra={"example": "New York"})
-    destination: str = Field(..., json_schema_extra={"example": "Tokyo"})
-    travelers: int = Field(..., json_schema_extra={"example": 2})
+    origin: str = Field(..., description="Starting location")
+    destination: str = Field(..., description="Trip destination")
+    travelers: int = Field(..., description="Number of travelers")
 
-    budget_usd: Optional[int] = Field(None, json_schema_extra={"example": 3000})
-    days: Optional[int] = Field(None, json_schema_extra={"example": 5})
-    interests: List[str] = Field(
-        default_factory=list,
-        json_schema_extra={"example": ["food", "anime", "culture"]}
-    )
+    budget_usd: Optional[int] = None
+    days: Optional[int] = None
+    interests: List[str] = Field(default_factory=list)
+
+
+class Stop(BaseModel):
+    name: str
+    day: int
+    description: str
+    lat: float
+    lng: float
 
 
 class TripResponse(BaseModel):
@@ -39,7 +51,34 @@ class TripResponse(BaseModel):
     budget_usd: Optional[int]
     days: Optional[int]
     plan: str
-    stops: List[dict[str, Any]]
+    stops: List[Stop]
+
+
+class StopsRequest(BaseModel):
+    origin: str
+    destination: str
+    travelers: int
+    budget_usd: Optional[int] = None
+    days: Optional[int] = None
+    interests: List[str] = Field(default_factory=list)
+
+
+class StopsResponse(BaseModel):
+    stops: List[Stop]
+
+
+class RouteRequest(BaseModel):
+    stops: List[Stop]
+
+
+class RouteSegment(BaseModel):
+    day: int
+    color: str
+    points: List[List[float]]
+
+
+class RouteResponse(BaseModel):
+    routes: List[RouteSegment]
 
 
 @app.get("/", include_in_schema=False)
@@ -47,9 +86,17 @@ def home():
     return FileResponse("ui.html")
 
 
-@app.get("/health")
+@app.get("/health", operation_id="health_check")
 def health():
     return {"status": "ok"}
+
+
+def get_day_color(day: int) -> str:
+    colors = [
+        "red", "blue", "green", "orange", "purple",
+        "yellow", "violet", "grey", "black"
+    ]
+    return colors[(day - 1) % len(colors)]
 
 
 @app.post("/plan-trip", response_model=TripResponse, operation_id="plan_trip")
@@ -92,7 +139,6 @@ The JSON must contain:
 2. "stops": map stop points with latitude and longitude
 
 The "plan" text must include:
-
 1. Trip Summary
 2. Transportation From Origin To Destination
 3. Estimated Cost Breakdown
@@ -127,7 +173,7 @@ Map stop rules:
 - Include major stops from each itinerary day.
 - Each stop must have: name, day, description, lat, lng.
 - Each stop day must match the itinerary day.
-- Put stops in the correct travel order so the map route line is useful.
+- Put stops in correct travel order.
 """
 
         response = client.responses.create(
@@ -179,3 +225,53 @@ Map stop rules:
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/get-stops", response_model=StopsResponse, operation_id="get_stops")
+def get_stops(req: StopsRequest):
+    trip = plan_trip(
+        TripRequest(
+            origin=req.origin,
+            destination=req.destination,
+            travelers=req.travelers,
+            budget_usd=req.budget_usd,
+            days=req.days,
+            interests=req.interests,
+        )
+    )
+
+    return StopsResponse(stops=trip.stops)
+
+
+@app.post("/get-route", response_model=RouteResponse, operation_id="get_route")
+def get_route(req: RouteRequest):
+    stops_by_day: dict[int, List[Stop]] = {}
+
+    for stop in req.stops:
+        stops_by_day.setdefault(stop.day, []).append(stop)
+
+    routes = []
+
+    for day in sorted(stops_by_day.keys()):
+        day_stops = stops_by_day[day]
+
+        points = [
+            [stop.lat, stop.lng]
+            for stop in day_stops
+        ]
+
+        if len(points) > 1:
+            routes.append(
+                RouteSegment(
+                    day=day,
+                    color=get_day_color(day),
+                    points=points,
+                )
+            )
+
+    return RouteResponse(routes=routes)
+
+
+if MCP_AVAILABLE:
+    mcp = FastApiMCP(app)
+    mcp.mount()
